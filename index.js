@@ -4,13 +4,14 @@ import eggImagePath from "./assets/egg2.png"
 import lam from "lambda-calculus"
 import React, { useState, useMemo } from "react"
 import ReactDOM from "react-dom"
+import isNil from "lodash.isnil"
 
 const EGG_WIDTH = 94
 const EGG_HEIGHT = 57
 const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
 
-function convert(str) {
+function expandLambdas(str) {
     let output = ""
     let index = 0
     while (index < str.length) {
@@ -30,42 +31,144 @@ function convert(str) {
     return output
 }
 
+function getId() {
+    return Math.floor(Math.random() * 1000000)
+}
+
+function makeProgramNode(astNode) {
+    // uniquely identify each lambda
+    // vars get associated to their corresponding lambdas
+
+    const root = JSON.parse(JSON.stringify(astNode))
+
+    walkBreadthFirst(root, (node, key, parent) => {
+        renameProps(node)
+
+        node.id = getId()
+        node.parentId = parent?.id ?? -1
+
+        if (node.type === "var") {
+            const bindingLambda = getBindingLambdaForVar(node, root)
+            node.bindingLambdaId = bindingLambda.id
+        }
+    })
+
+    return root
+}
+
+function getBindingLambdaForVar(varNode, root) {
+    const ancestorLambdas = getAncestors(varNode, root).filter(
+        node => node.type === "lam"
+    )
+
+    // use De Bruijn index
+    return ancestorLambdas[varNode.index]
+}
+
+function renameProps(node) {
+    if (!isNil(node.ctor)) {
+        node.type = node.ctor.toLowerCase()
+        delete node.ctor
+    }
+    if (!isNil(node.argm)) {
+        node.arg = node.argm
+        delete node.argm
+    }
+}
+
+function walkBreadthFirst(root, func) {
+    const queue = [{ node: root, key: null, parent: null }]
+
+    let count = 0
+    while (queue.length > 0 && count < 1000) {
+        count++
+        const { node, key, parent } = queue.pop()
+        const shouldStop = func(node, key, parent)
+
+        if (!shouldStop) {
+            queue.unshift(
+                ...Object.entries(node)
+                    .filter(
+                        ([key, value]) =>
+                            typeof value === "object" && !isNil(value)
+                    )
+                    .map(([key, value]) => ({
+                        node: value,
+                        key,
+                        parent: node,
+                    }))
+            )
+        }
+    }
+}
+
+function getAncestors(node, root) {
+    let next = node
+    const ancestors = []
+
+    do {
+        next = findNodeWithId(root, next.parentId)
+        if (!isNil(next)) ancestors.push(next)
+    } while (!isNil(next))
+
+    return ancestors
+}
+
+function findNodeWithId(root, id) {
+    let desiredNode = null
+
+    walkBreadthFirst(root, node => {
+        if (node.id === id) {
+            desiredNode = node
+            return true
+        }
+        return false
+    })
+
+    return desiredNode
+}
+
+function reduceStep(program) {
+    // - find leftmost application
+    // - .func should always be a Lambda if its up for reducing
+    // - sub .argm into all occurances of .func's bound variable, within .func.body
+    // - nodes pass through buildProgramModel before getting substituted (they'll get new ids)
+}
+
 // const prog = "λab.a(λc.c(λd.d)(λd.d))(b(λcde.dc)(λcd.d))(λcde.e)(λcd.c)"
-const prog = "λa.(λb.bb)(a(λb.a))"
-console.log("ORIGINAL:", prog)
-console.log("CONVERTED:", convert(prog))
+const initialProgString = "λa.((λb.(b b)) (a (λb.a)))"
+console.log("ORIGINAL:", initialProgString)
+console.log("CONVERTED:", expandLambdas(initialProgString))
 
 function isLambda(char) {
     return char === "λ" || char === "L" || char === "\\"
 }
 
 function App({}) {
-    const [program, setProgram] = useState("(λa.(λb.(b b)) (a (λb.a)))")
+    const [programString, setProgramString] = useState(initialProgString)
 
-    const parseTree = useMemo(() => {
+    const program = useMemo(() => {
         try {
-            // const lexer = new Lexer(convert(program))
-            // const parser = new Parser(lexer)
-            // const ast = parser.parse()
-            // console.log("AST", parse(convert(program)))
-            return lam.fromString(convert(program))
+            const ast = lam.fromString(expandLambdas(programString))
+            console.log("AST: ", ast)
+            return makeProgramNode(ast)
         } catch (ex) {
             console.error(ex)
             return {}
         }
-    }, [program])
+    }, [programString])
 
-    console.log("parse tree: ", parseTree)
+    console.log("program: ", program)
 
     return (
         <>
             <input
                 className="program-input"
                 type="text"
-                value={program}
-                onChange={e => setProgram(e.target.value)}
+                value={programString}
+                onChange={e => setProgramString(e.target.value)}
             />
-            <div className="gator-program">{renderNode(parseTree)}</div>
+            {/* <div className="gator-program">{renderNode(parseTree)}</div> */}
         </>
     )
 }
@@ -80,11 +183,11 @@ function renderNode(node, level = 1) {
     const category = node.ctor
 
     switch (category) {
-        case "Lam":
+        case "lam":
             return renderLam(node, level)
-        case "App":
+        case "app":
             return renderFuncApp(node, level)
-        case "Var":
+        case "var":
             return renderVar(node, level)
         default:
             console.error("unknown category: ", category)
