@@ -13,7 +13,8 @@ body {
 }
 
 .program-input {
-    margin: 0.5rem;
+    flex-grow: 1;
+    margin-right: 0.5rem;
 }
 
 .gator-program {
@@ -31,21 +32,11 @@ body {
     position: relative;
 }
 .gator-image {
+    --hue-rotation: hue-rotate(270deg);
     width: 100%;
     height: 100%;
     z-index: 2;
-    filter: drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.6)) sepia(100%)
-        saturate(1150%) hue-rotate(270deg);
     image-rendering: crisp-edges;
-    /* opacity: 0.65; */
-}
-.gator-mask-image {
-    position: absolute;
-    top: 0;
-    left: 0;
-    background-color: red;
-    width: 100%;
-    height: 100%;
 }
 
 .egg-image {
@@ -59,7 +50,7 @@ body {
     border-top: 3px solid #666;
     /* border: 2px dashed #ccc; */
     padding: 2px;
-    margin-top: 4px;
+    margin: px;
 }
 
 .lambda {
@@ -68,4 +59,11 @@ body {
     justify-content: flex-start;
     align-items: center;
     align-content: center;
+}
+
+.input-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 0.5rem;
 }

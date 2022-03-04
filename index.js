@@ -2,7 +2,7 @@ import css from "./style.css"
 import gatorImagePath from "./assets/gator2.png"
 import eggImagePath from "./assets/egg2.png"
 import lam from "lambda-calculus"
-import React, { useState, useMemo } from "react"
+import React, { useState, useMemo, useEffect } from "react"
 import ReactDOM from "react-dom"
 import isNil from "lodash.isnil"
 
@@ -10,6 +10,9 @@ const EGG_WIDTH = 94
 const EGG_HEIGHT = 57
 const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
+
+let lambdaCount = 0
+let randomColorOffset = Math.random() * 360
 
 function expandLambdas(str) {
     let output = ""
@@ -31,8 +34,17 @@ function expandLambdas(str) {
     return output
 }
 
-function getId() {
-    return Math.floor(Math.random() * 1000000)
+function parseProgramString(programString) {
+    try {
+        lambdaCount = 0
+        const ast = lam.fromString(expandLambdas(programString))
+        console.log("AST: ", ast)
+
+        return makeProgramNode(ast)
+    } catch {
+        console.error(ex)
+        return {}
+    }
 }
 
 function makeProgramNode(astNode) {
@@ -44,7 +56,7 @@ function makeProgramNode(astNode) {
     walkBreadthFirst(root, (node, key, parent) => {
         renameProps(node)
 
-        node.id = getId()
+        node.id = lambdaCount++
         node.parentId = parent?.id ?? -1
 
         if (node.type === "var") {
@@ -146,29 +158,27 @@ function isLambda(char) {
 
 function App({}) {
     const [programString, setProgramString] = useState(initialProgString)
+    const [program, setProgram] = useState(parseProgramString(programString))
 
-    const program = useMemo(() => {
-        try {
-            const ast = lam.fromString(expandLambdas(programString))
-            console.log("AST: ", ast)
-            return makeProgramNode(ast)
-        } catch (ex) {
-            console.error(ex)
-            return {}
-        }
-    }, [programString])
-
-    console.log("program: ", program)
+    useEffect(() => {
+        console.log("program: ", program)
+    }, [program])
 
     return (
         <>
-            <input
-                className="program-input"
-                type="text"
-                value={programString}
-                onChange={e => setProgramString(e.target.value)}
-            />
-            {/* <div className="gator-program">{renderNode(parseTree)}</div> */}
+            <div className="input-row">
+                <input
+                    className="program-input"
+                    type="text"
+                    value={programString}
+                    onChange={e => setProgramString(e.target.value)}
+                />
+                <button onClick={e => setProgram(reduceStep(program))}>
+                    {skipBackIcon()}
+                </button>
+                <button>{skipForwardIcon()}</button>
+            </div>
+            <div className="gator-program">{renderNode(program)}</div>
         </>
     )
 }
@@ -180,7 +190,7 @@ window.onload = () => {
 }
 
 function renderNode(node, level = 1) {
-    const category = node.ctor
+    const category = node.type
 
     switch (category) {
         case "lam":
@@ -197,7 +207,7 @@ function renderNode(node, level = 1) {
 
 function renderFuncApp(node, level) {
     const func = node.func
-    const arg = node.argm
+    const arg = node.arg
 
     return (
         <div className="func-app">
@@ -214,6 +224,7 @@ function renderVar(node, level) {
             style={{
                 width: `${EGG_WIDTH * scaleVal}px`,
                 height: `${EGG_HEIGHT * scaleVal}px`,
+                filter: filterValForLambdaId(node.bindingLambdaId),
             }}
             className="egg-image"
             src={eggImagePath}
@@ -231,10 +242,73 @@ function renderLam(node, level) {
                 style={{
                     width: `${GATOR_WIDTH * scaleVal}px`,
                     height: `${GATOR_HEIGHT * scaleVal}px`,
+                    filter: filterValForLambdaId(node.id),
                 }}
                 src={gatorImagePath}
             />
             {renderNode(node.body, level + 1)}
         </div>
+    )
+}
+
+function filterValForLambdaId(id) {
+    const hueRotation = indexToDistantPosition(id, 360) + randomColorOffset
+
+    return `drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.6)) sepia(100%)
+        saturate(1150%) hue-rotate(${hueRotation}deg)`
+}
+
+function indexToDistantPosition(index, totalSpace) {
+    let nextPwrOf2 = 0
+    let lastPwrOf2 = 0
+    let count = 0
+
+    while (index > nextPwrOf2) {
+        lastPwrOf2 = nextPwrOf2
+        nextPwrOf2 = (++count) ** 2
+    }
+
+    const subRegionIndex = index - lastPwrOf2
+    const subRegions = nextPwrOf2 - lastPwrOf2 + 1
+    const subRegionWidth = totalSpace / subRegions
+
+    return subRegionIndex * subRegionWidth + subRegionWidth / 2
+}
+
+function skipForwardIcon() {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <line x1="19" y1="5" x2="19" y2="19"></line>
+        </svg>
+    )
+}
+
+function skipBackIcon() {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5"></line>
+        </svg>
     )
 }
