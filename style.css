@@ -1,3 +1,8 @@
+:root {
+    /* if you change make sure to update constant in GatorApp.js too */
+    --ANIMATION_TIME: 500ms;
+}
+
 body {
     background-color: white;
     width: 100vw;
@@ -12,20 +17,38 @@ body {
     height: 100%;
 }
 
+.input-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    margin: 0.5rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+
 .program-input {
     flex-grow: 1;
     margin-right: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: bold;
+    padding: 0.25rem;
+    color: #555;
 }
 
 .gator-program {
-    background-color: white;
-    /* border: 1px solid black;
-    border-radius: 5px; */
+    background-color: #f0f4f585;
+    border: 2px solid #ddd;
+    border-radius: 5px;
     flex-grow: 1;
-    margin: 0.5rem;
+    margin: 1rem;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
     display: flex;
     flex-direction: row;
     justify-content: flex-start;
+    overflow: auto;
+    background-size: 20px 20px;
+    background-image: radial-gradient(circle, #ddd 1px, rgba(0, 0, 0, 0) 1px);
 }
 
 .img-proxy {
@@ -47,8 +70,7 @@ body {
 .func-app {
     display: flex;
     flex-direction: row;
-    border-top: 3px solid #666;
-    /* border: 2px dashed #ccc; */
+    border-top: 3px solid #999;
     padding: 2px;
     margin: 4px;
 }
@@ -61,9 +83,63 @@ body {
     align-content: center;
 }
 
-.input-row {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    margin: 0.5rem;
+.lambda-number {
+    font-size: 2.5rem;
+    font-family: sans-serif;
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.4;
+    color: black;
+}
+
+.lambda-anim-enter {
+    transform: scale(1);
+}
+.lambda-anim-enter-active {
+    transform: scale(1);
+}
+.lambda-anim-exit {
+    transform: scale(1);
+}
+.lambda-anim-exit-active {
+    transform: scale(1, 0);
+    transform-origin: bottom;
+    transition: transform var(--ANIMATION_TIME) ease-in;
+}
+.lambda-anim-exit-done {
+    transform: scale(1, 0);
+}
+
+.arg-node-enter {
+    transform: scale(1);
+}
+.arg-node-enter-active {
+    transform: scale(1);
+}
+.arg-node-exit {
+    transform: scale(1);
+}
+.arg-node-exit-active {
+    transform: scale(0);
+    transition: transform var(--ANIMATION_TIME) ease-in;
+}
+.arg-node-exit-done {
+    transform: scale(0);
+}
+
+.sub-node-enter {
+    transform: scale(0);
+}
+.sub-node-enter-active {
+    transform: scale(1);
+    transition: transform 500ms ease-in;
+}
+.sub-node-exit {
+    transform: scale(1);
+}
+.sub-node-exit-active {
+    transform: scale(1);
 }
