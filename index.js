@@ -12,7 +12,12 @@ const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
 
 let lambdaCount = 0
+let nodeCount = 0
+let unboundVarCount = 0
 let randomColorOffset = Math.random() * 360
+
+// const initialProgString = "λab.a(λc.c(λd.d)(λd.d))(b(λcde.dc)(λcd.d))(λcde.e)(λcd.c)"
+const initialProgString = "(λa.((λb.(b b)) (a (λb.a))) (λc.c))"
 
 function expandLambdas(str) {
     let output = ""
@@ -34,14 +39,22 @@ function expandLambdas(str) {
     return output
 }
 
-function parseProgramString(programString) {
+function isLambda(char) {
+    return char === "λ" || char === "L" || char === "\\"
+}
+
+function makeProgramFromString(programString) {
+    // reset
+    lambdaCount = 0
+    nodeCount = 0
+    unboundVarCount = 0
+
     try {
-        lambdaCount = 0
         const ast = lam.fromString(expandLambdas(programString))
         console.log("AST: ", ast)
 
         return makeProgramNode(ast)
-    } catch {
+    } catch (ex) {
         console.error(ex)
         return {}
     }
@@ -56,12 +69,15 @@ function makeProgramNode(astNode) {
     walkBreadthFirst(root, (node, key, parent) => {
         renameProps(node)
 
-        node.id = lambdaCount++
+        node.id = nodeCount++
         node.parentId = parent?.id ?? -1
 
         if (node.type === "var") {
             const bindingLambda = getBindingLambdaForVar(node, root)
-            node.bindingLambdaId = bindingLambda.id
+            node.bindingLambdaId =
+                bindingLambda?.lambdaIndex ?? -++unboundVarCount
+        } else if (node.type === "lam") {
+            node.lambdaIndex = lambdaCount++
         }
     })
 
@@ -86,6 +102,24 @@ function renameProps(node) {
         node.arg = node.argm
         delete node.argm
     }
+}
+
+function getLambdas(node) {
+    const lambdas = []
+    walkBreadthFirst(node, node => {
+        if (node.type === "lam") lambdas.push(node)
+    })
+
+    return lambdas
+}
+
+function getApplications(node) {
+    const apps = []
+    walkBreadthFirst(node, node => {
+        if (node.type === "app") apps.push(node)
+    })
+
+    return apps
 }
 
 function walkBreadthFirst(root, func) {
@@ -140,25 +174,70 @@ function findNodeWithId(root, id) {
     return desiredNode
 }
 
+function findAll(node, predicate) {
+    const matches = []
+    walkBreadthFirst(node, node => {
+        if (predicate(node)) mataches.push(node)
+    })
+
+    return matches
+}
+
+function substituteVarOccurances(lambda, subValue) {
+    walkBreadthFirst(lambda.body, (node, key, parent) => {
+        if (
+            node.type === "var" &&
+            node.bindingLambdaId === lambda.lambdaIndex
+        ) {
+            // I think we're only reaching this key === null case when the program
+            // is already in beta normal form and we try reducing again
+            // console.log("gonna sub", subValue)
+            // if (key === null) debugger
+
+            parent[key] = subValue
+        }
+    })
+}
+
 function reduceStep(program) {
     // - find leftmost application
     // - .func should always be a Lambda if its up for reducing
     // - sub .argm into all occurances of .func's bound variable, within .func.body
     // - nodes pass through buildProgramModel before getting substituted (they'll get new ids)
-}
 
-// const prog = "λab.a(λc.c(λd.d)(λd.d))(b(λcde.dc)(λcd.d))(λcde.e)(λcd.c)"
-const initialProgString = "λa.((λb.(b b)) (a (λb.a)))"
-console.log("ORIGINAL:", initialProgString)
-console.log("CONVERTED:", expandLambdas(initialProgString))
+    program = JSON.parse(JSON.stringify(program))
+    const app = getApplications(program).find(app => app.func.type === "lam")
 
-function isLambda(char) {
-    return char === "λ" || char === "L" || char === "\\"
+    if (!isNil(app)) {
+        console.assert(
+            app.func.type === "lam",
+            "expected function in application to be lambda; function node:",
+            app.func
+        )
+
+        const lambda = app.func
+        const appParent = findNodeWithId(program, app.parentId)
+
+        substituteVarOccurances(lambda, app.arg)
+
+        if (!isNil(appParent)) {
+            Object.entries(appParent).forEach(([key, value]) => {
+                if (value === app) {
+                    appParent[key] = lambda.body
+                }
+            })
+        } else {
+            program = lambda.body
+        }
+    }
+
+    return program
 }
 
 function App({}) {
     const [programString, setProgramString] = useState(initialProgString)
-    const [program, setProgram] = useState(parseProgramString(programString))
+    const [program, setProgram] = useState(makeProgramFromString(programString))
+    const [undoStack, setUndoStack] = useState([])
 
     useEffect(() => {
         console.log("program: ", program)
@@ -173,10 +252,23 @@ function App({}) {
                     value={programString}
                     onChange={e => setProgramString(e.target.value)}
                 />
-                <button onClick={e => setProgram(reduceStep(program))}>
+                <button
+                    disabled={undoStack.length === 0}
+                    onClick={e => {
+                        setProgram(undoStack.pop())
+                        setUndoStack([...undoStack])
+                    }}
+                >
                     {skipBackIcon()}
                 </button>
-                <button>{skipForwardIcon()}</button>
+                <button
+                    onClick={e => {
+                        setUndoStack([...undoStack, program])
+                        setProgram(reduceStep(program))
+                    }}
+                >
+                    {skipForwardIcon()}
+                </button>
             </div>
             <div className="gator-program">{renderNode(program)}</div>
         </>
@@ -190,6 +282,7 @@ window.onload = () => {
 }
 
 function renderNode(node, level = 1) {
+    // if (!node?.type) debugger
     const category = node.type
 
     switch (category) {
@@ -200,7 +293,11 @@ function renderNode(node, level = 1) {
         case "var":
             return renderVar(node, level)
         default:
-            console.error("unknown category: ", category)
+            console.error(
+                "attempted to render node with unknown category: ",
+                category,
+                node
+            )
             break
     }
 }
@@ -224,7 +321,7 @@ function renderVar(node, level) {
             style={{
                 width: `${EGG_WIDTH * scaleVal}px`,
                 height: `${EGG_HEIGHT * scaleVal}px`,
-                filter: filterValForLambdaId(node.bindingLambdaId),
+                filter: filterValForLambdaIndex(node.bindingLambdaId),
             }}
             className="egg-image"
             src={eggImagePath}
@@ -242,7 +339,7 @@ function renderLam(node, level) {
                 style={{
                     width: `${GATOR_WIDTH * scaleVal}px`,
                     height: `${GATOR_HEIGHT * scaleVal}px`,
-                    filter: filterValForLambdaId(node.id),
+                    filter: filterValForLambdaIndex(node.lambdaIndex),
                 }}
                 src={gatorImagePath}
             />
@@ -251,8 +348,14 @@ function renderLam(node, level) {
     )
 }
 
-function filterValForLambdaId(id) {
-    const hueRotation = indexToDistantPosition(id, 360) + randomColorOffset
+function filterValForLambdaIndex(lambdaIndex) {
+    let hueRotation =
+        indexToDistantPosition(lambdaIndex, 360) + randomColorOffset
+
+    // unbound variable
+    if (lambdaIndex < 0) {
+        hueRotation = (360 / unboundVarCount) * -lambdaIndex + randomColorOffset
+    }
 
     return `drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.6)) sepia(100%)
         saturate(1150%) hue-rotate(${hueRotation}deg)`
