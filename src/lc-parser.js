@@ -1,7 +1,12 @@
+// NOTE: THIS IS NOT BEING USED AT THE MOMENT. It's probably not even worth fixing. It was my first
+// attempt at writing a recursive descent parser and it's got issues.
+
 let program
 const DEBUG = true
 
 /**
+ * This is the basic idea for the grammar, but in practice
+ * there is a little deviation while I tried (and failed) removing left-recursion.
  *
  * TERM := APP | TERM2
  * TERM2 := LAMBDA | VAR

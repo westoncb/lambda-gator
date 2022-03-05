@@ -31,7 +31,7 @@ function expandLambdas(str) {
     return output
 }
 
-// probably want to support other chars representing 'λ'
+// probably want to support other chars for lambda
 function isLambda(char) {
     return char === "λ"
 }
@@ -211,7 +211,7 @@ function substituteVarOccurances(lambda, subValue) {
             // if (key === null) debugger
 
             // There are likely issues with simply re-using 'makeProgramNode' in this way.
-            // It's a hack that maybe kind of works, but I think there is where proper
+            // It's a hack that maybe kind of works, but I think this is where proper
             // alpha-conversion needs to take place
             const newNode = makeProgramNode(subValue)
             newNode.parentId = parent.id
