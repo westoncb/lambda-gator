@@ -15,7 +15,7 @@ const GATOR_HEIGHT = 124
 const BASE_SCALE = 0.75
 
 // if you change this, make sure to update in style.css too
-const ANIMATION_TIME = 500
+const ANIMATION_TIME = 300
 
 let randomColorOffset = Math.random() * 360
 
@@ -27,8 +27,10 @@ export default function GatorApp({ initialProgString }) {
         useState(initialProgString)
     const progStringChanged = currentInputString !== programString
     const [showDialog, setShowDialog] = useState(false)
+    const [reductionComplete, setReductionComplete] = useState(false)
 
     useEffect(() => {
+        setReductionComplete(false)
         clearTransitions()
         setUndoStack([])
         setProgram(makeProgramFromString(programString))
@@ -50,17 +52,18 @@ export default function GatorApp({ initialProgString }) {
     }
 
     async function handleNextStep() {
-        setUndoStack([...undoStack, program])
-        const {
-            reducedProgram,
-            subbedInNodes,
-            lambdaFunc,
-            funcArg,
-            reductionWasComplete,
-        } = reduceStep(program)
+        if (!reductionComplete) {
+            setUndoStack([...undoStack, program])
+            const {
+                reducedProgram,
+                subbedInNodes,
+                lambdaFunc,
+                funcArg,
+                reductionComplete,
+            } = reduceStep(program)
 
-        if (!reductionWasComplete) {
             await doAnimations(subbedInNodes, lambdaFunc, funcArg)
+            setReductionComplete(reductionComplete)
             setProgram(reducedProgram)
         }
     }
@@ -97,13 +100,16 @@ export default function GatorApp({ initialProgString }) {
                     disabled={undoStack.length === 0}
                     onClick={e => {
                         clearTransitions()
+                        setReductionComplete(false)
                         setProgram(undoStack.pop())
                         setUndoStack([...undoStack])
                     }}
                 >
                     {skipBackIcon()}
                 </button>
-                <button onClick={handleNextStep}>{skipForwardIcon()}</button>
+                <button disabled={reductionComplete} onClick={handleNextStep}>
+                    {skipForwardIcon()}
+                </button>
             </div>
             <div className="gator-program">
                 {renderNode(program, {
@@ -111,6 +117,16 @@ export default function GatorApp({ initialProgString }) {
                     argTransition,
                     subTransitions,
                 })}
+                {reductionComplete && (
+                    <div className="reduction-complete-message">
+                        <div style={{ fontSize: "1.25rem" }}>
+                            Reduction complete!
+                        </div>{" "}
+                        <div style={{ fontStyle: "italic" }}>
+                            (or there's a bug...)
+                        </div>
+                    </div>
+                )}
             </div>
             <button
                 className="about-button"

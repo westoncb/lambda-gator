@@ -99,12 +99,13 @@ export function reduceStep(program) {
     // but we want to preserve the old one for the undo stack.
     program = clone(program)
 
-    // Grab the first application who function component is of type lambda.
-    // Performing function applications in the correct order is currently
-    // highly depending on the traversal order used by walkBreadthFirst.
+    // Grab the first application whose function component is of type lambda.
+    // NOTE: Performing function applications in the correct order is currently
+    // highly dependent on the traversal order used by walkBreadthFirst.
     // Check its implementation for more info.
     const allApps = getApplications(program)
-    const app = allApps.find(app => app.func.type === TYPE_LAM)
+    const lambdaApps = allApps.filter(app => app.func.type === TYPE_LAM)
+    const app = lambdaApps[0]
 
     let subbedInNodes = []
     let lambda = null
@@ -137,9 +138,13 @@ export function reduceStep(program) {
         }
     }
 
+    const remainingApps = getApplications(program).filter(
+        app => app.func.type === TYPE_LAM
+    )
+
     return {
         reducedProgram: program,
-        reductionWasComplete: isNil(app),
+        reductionComplete: remainingApps.length === 0,
         subbedInNodes,
         lambdaFunc: lambda,
         funcArg: app?.arg,

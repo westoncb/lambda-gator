@@ -1,6 +1,6 @@
 :root {
     /* if you change make sure to update constant in GatorApp.js too */
-    --ANIMATION_TIME: 500ms;
+    --ANIMATION_TIME: 300ms;
 }
 
 body {
@@ -8,6 +8,7 @@ body {
     width: 100vw;
     height: 100vh;
     margin: 0;
+    font-family: sans-serif;
 }
 
 .app {
@@ -47,6 +48,7 @@ body {
 }
 
 .gator-program {
+    position: relative;
     background-color: #f0f4f585;
     border: 2px solid #ddd;
     border-radius: 5px;
@@ -145,7 +147,7 @@ body {
 }
 .sub-node-enter-active {
     transform: scale(1);
-    transition: transform 500ms ease-in;
+    transition: transform var(--ANIMATION_TIME) ease-in;
 }
 .sub-node-exit {
     transform: scale(1);
@@ -179,4 +181,20 @@ body {
     top: 5rem;
     bottom: 5rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+}
+
+.reduction-complete-message {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.5rem;
+    align-items: center;
+    bottom: 1rem;
+    left: 1rem;
+    right: 1rem;
+    height: 6rem;
+    background-color: #00ffa1;
+    border: 2px solid #04c17b;
+    z-index: 2;
 }
