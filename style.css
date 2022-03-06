@@ -20,7 +20,7 @@ body {
 .input-row {
     display: flex;
     flex-direction: row;
-    align-items: center;
+    align-items: stretch;
     margin: 0.5rem;
     margin-left: 1rem;
     margin-right: 1rem;
@@ -35,6 +35,17 @@ body {
     color: #555;
 }
 
+.load-button {
+    margin-right: 0.5rem;
+}
+
+.main-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
 .gator-program {
     background-color: #f0f4f585;
     border: 2px solid #ddd;
@@ -47,13 +58,12 @@ body {
     flex-direction: row;
     justify-content: flex-start;
     overflow: auto;
+
+    /* dotted background */
     background-size: 20px 20px;
     background-image: radial-gradient(circle, #ddd 1px, rgba(0, 0, 0, 0) 1px);
 }
 
-.img-proxy {
-    position: relative;
-}
 .gator-image {
     --hue-rotation: hue-rotate(270deg);
     width: 100%;
@@ -142,4 +152,31 @@ body {
 }
 .sub-node-exit-active {
     transform: scale(1);
+}
+
+.about-button {
+    margin-bottom: 0.5rem;
+    margin-top: -0.5rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    background-color: #a8c9fb;
+    cursor: pointer;
+    min-height: 2rem;
+}
+
+.about-button:hover {
+    filter: brightness(115%);
+}
+
+.about-dialog {
+    position: absolute;
+    background-color: #c8ced3;
+    color: #333;
+    font-family: sans-serif;
+    z-index: 3;
+    left: 5rem;
+    right: 5rem;
+    top: 5rem;
+    bottom: 5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
 }

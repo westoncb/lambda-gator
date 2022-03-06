@@ -1,21 +1,18 @@
 import css from "../../style.css"
 import gatorImagePath from "../../assets/gator2.png"
 import eggImagePath from "../../assets/egg2.png"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import isNil from "lodash.isnil"
 import { CSSTransition } from "react-transition-group"
 import { skipForwardIcon, skipBackIcon } from "../icons"
-import {
-    makeProgramFromString,
-    reduceStep,
-    unboundVarCount,
-} from "../lc-program"
+import { makeProgramFromString, reduceStep, freeVarCount } from "../lc-program"
 import { pause } from "../util"
 
 const EGG_WIDTH = 94
 const EGG_HEIGHT = 57
 const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
+const BASE_SCALE = 0.75
 
 // if you change this, make sure to update in style.css too
 const ANIMATION_TIME = 500
@@ -26,6 +23,16 @@ export default function GatorApp({ initialProgString }) {
     const [programString, setProgramString] = useState(initialProgString)
     const [program, setProgram] = useState(makeProgramFromString(programString))
     const [undoStack, setUndoStack] = useState([])
+    const [currentInputString, setCurrentInputString] =
+        useState(initialProgString)
+    const progStringChanged = currentInputString !== programString
+    const [showDialog, setShowDialog] = useState(false)
+
+    useEffect(() => {
+        clearTransitions()
+        setUndoStack([])
+        setProgram(makeProgramFromString(programString))
+    }, [programString])
 
     // used for animations
     const [lamTransition, setLamTransition] = useState({
@@ -44,11 +51,18 @@ export default function GatorApp({ initialProgString }) {
 
     async function handleNextStep() {
         setUndoStack([...undoStack, program])
-        const { reducedProgram, subbedInNodes, lambdaFunc, funcArg } =
-            reduceStep(program)
+        const {
+            reducedProgram,
+            subbedInNodes,
+            lambdaFunc,
+            funcArg,
+            reductionWasComplete,
+        } = reduceStep(program)
 
-        await doAnimations(subbedInNodes, lambdaFunc, funcArg)
-        setProgram(reducedProgram)
+        if (!reductionWasComplete) {
+            await doAnimations(subbedInNodes, lambdaFunc, funcArg)
+            setProgram(reducedProgram)
+        }
     }
 
     async function doAnimations(subbedInNodes, lambdaFunc, funcArg) {
@@ -63,13 +77,21 @@ export default function GatorApp({ initialProgString }) {
     }
 
     return (
-        <>
+        <div className="main-container">
+            <AboutDialog show={showDialog} />
             <div className="input-row">
+                <button
+                    className="load-button"
+                    disabled={!progStringChanged}
+                    onClick={e => setProgramString(currentInputString)}
+                >
+                    Load program
+                </button>
                 <input
                     className="program-input"
                     type="text"
-                    value={programString}
-                    onChange={e => setProgramString(e.target.value)}
+                    value={currentInputString}
+                    onChange={e => setCurrentInputString(e.target.value)}
                 />
                 <button
                     disabled={undoStack.length === 0}
@@ -90,7 +112,13 @@ export default function GatorApp({ initialProgString }) {
                     subTransitions,
                 })}
             </div>
-        </>
+            <button
+                className="about-button"
+                onClick={e => setShowDialog(showDialog => !showDialog)}
+            >
+                ABOUT / INSTRUCTIONS
+            </button>
+        </div>
     )
 }
 
@@ -134,7 +162,7 @@ function renderFuncApp(node, state, level) {
 }
 
 function renderVar(node, state, level) {
-    const scaleVal = Math.sqrt(1 / level)
+    const scaleVal = Math.sqrt(1 / level) * BASE_SCALE
 
     return (
         <div style={{ position: "relative", maxWidth: "fit-content" }}>
@@ -162,7 +190,7 @@ function renderVar(node, state, level) {
 }
 
 function renderLam(node, state, level) {
-    const scaleVal = Math.sqrt(1 / level)
+    const scaleVal = Math.sqrt(1 / level) * BASE_SCALE
 
     const animState =
         state.lambTransition.id === node.id
@@ -203,16 +231,19 @@ function renderLam(node, state, level) {
     )
 }
 
+/**
+ * Responsible for assigning unique colors to each lambda and its associated var
+ */
 function filterValForLambdaIndex(lambdaIndex) {
     let hueRotation =
         indexToDistantPosition(lambdaIndex, 360) + randomColorOffset
 
-    // unbound variable
+    // free variable
     if (lambdaIndex < 0) {
-        hueRotation = (360 / unboundVarCount) * -lambdaIndex + randomColorOffset
+        hueRotation = (360 / freeVarCount) * -lambdaIndex + randomColorOffset
     }
 
-    return `drop-shadow(0px 0px 3px rgba(0, 0, 0, 0.6)) sepia(100%)
+    return `drop-shadow(0px 0px 4px rgba(0, 0, 0, 0.7)) sepia(100%)
         saturate(1150%) hue-rotate(${hueRotation}deg)`
 }
 
@@ -221,7 +252,7 @@ function filterValForLambdaIndex(lambdaIndex) {
  * a large sample distance (we're using it to pick dissimilar hues)
  *
  * 'Samples' are uniformly spaced with in each power-of-2 bucket, but
- * when ever an index is larger enough to enter a new bucket the interval shrinks.
+ * whenever an index is larger enough to enter a new bucket the interval shrinks.
  */
 function indexToDistantPosition(index, totalSpace) {
     let nextPwrOf2 = 0
@@ -238,4 +269,19 @@ function indexToDistantPosition(index, totalSpace) {
     const subRegionWidth = totalSpace / subRegions
 
     return subRegionIndex * subRegionWidth + subRegionWidth / 2
+}
+
+function AboutDialog({ show }) {
+    const display = show ? "flex" : "none"
+
+    return (
+        <div className="about-dialog" style={{ display }}>
+            {/* 
+            how to use
+            limitations
+            background + state of project
+            prioritized improvement list (better for README)
+        */}
+        </div>
+    )
 }
