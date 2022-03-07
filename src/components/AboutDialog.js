@@ -100,6 +100,15 @@ export default function AboutDialog({ show, closeFunc }) {
                     </a>
                     .
                 </p>
+                <h4>
+                    Source:{" "}
+                    <a
+                        href="https://github.com/westoncb/lambda-gator"
+                        target="_blank"
+                    >
+                        https://github.com/westoncb/lambda-gator
+                    </a>
+                </h4>
             </div>
             {/* 
             how to use
