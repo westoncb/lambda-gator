@@ -18,7 +18,7 @@ const EGG_WIDTH = 94
 const EGG_HEIGHT = 57
 const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
-const BASE_SCALE = 0.5
+const BASE_SCALE = 0.65
 
 // if you change this, make sure to update in style.css too
 const ANIMATION_TIME = 300
@@ -114,7 +114,7 @@ export default function GatorApp({ initialProgString }) {
             </div>
             <div className="gator-program">
                 {renderNode(program, {
-                    lambTransition: lamTransition,
+                    lamTransition,
                     argTransition,
                     subTransitions,
                 })}
@@ -210,8 +210,8 @@ function renderLam(node, state, level) {
     const scaleVal = Math.sqrt(1 / level) * BASE_SCALE
 
     const animState =
-        state.lambTransition.id === node.id
-            ? state.lambTransition.animState
+        state.lamTransition.id === node.id
+            ? state.lamTransition.animState
             : true
 
     return (
