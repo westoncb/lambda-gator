@@ -171,16 +171,26 @@ body {
 }
 
 .about-dialog {
+    display: flex;
+    justify-content: center;
     position: absolute;
-    background-color: #c8ced3;
+    background-color: #d1dee9;
     color: #333;
     font-family: sans-serif;
     z-index: 3;
-    left: 5rem;
-    right: 5rem;
-    top: 5rem;
-    bottom: 5rem;
+    left: 5%;
+    right: 5%;
+    top: 5%;
+    bottom: 5%;
+    min-width: 20rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+.about-dialog-content {
+    width: 75%;
+    min-width: 20rem;
+    max-width: 60rem;
 }
 
 .reduction-complete-message {

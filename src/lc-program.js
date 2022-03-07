@@ -103,9 +103,7 @@ export function reduceStep(program) {
     // NOTE: Performing function applications in the correct order is currently
     // highly dependent on the traversal order used by walkBreadthFirst.
     // Check its implementation for more info.
-    const allApps = getApplications(program)
-    const lambdaApps = allApps.filter(app => app.func.type === TYPE_LAM)
-    const app = lambdaApps[0]
+    const app = getReducibleApplications(program)[0]
 
     let subbedInNodes = []
     let lambda = null
@@ -138,17 +136,16 @@ export function reduceStep(program) {
         }
     }
 
-    const remainingApps = getApplications(program).filter(
-        app => app.func.type === TYPE_LAM
-    )
-
     return {
         reducedProgram: program,
-        reductionComplete: remainingApps.length === 0,
         subbedInNodes,
         lambdaFunc: lambda,
         funcArg: app?.arg,
     }
+}
+
+export function getReducibleApplications(program) {
+    return getApplications(program).filter(app => app.func.type === TYPE_LAM)
 }
 
 /**

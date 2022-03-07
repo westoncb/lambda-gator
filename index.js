@@ -7,6 +7,7 @@ import GatorApp from "./src/components/GatorApp"
 // const initialProgString = "λab.a(λc.c(λd.d)(λd.d))(b(λcde.dc)(λcd.d))(λcde.e)(λcd.c)"
 
 const initialProgString = "(λa.((λb.(b b)) (a (λb.a))) (λc.(a (λb.a))))"
+// const initialProgString = "(Lx.(x Ly.(y y)))"
 
 const metaNode = document.createElement("meta")
 metaNode.setAttribute("name", "viewport")

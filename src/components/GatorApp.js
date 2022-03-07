@@ -5,14 +5,20 @@ import React, { useEffect, useState } from "react"
 import isNil from "lodash.isnil"
 import { CSSTransition } from "react-transition-group"
 import { skipForwardIcon, skipBackIcon } from "../icons"
-import { makeProgramFromString, reduceStep, freeVarCount } from "../lc-program"
+import {
+    makeProgramFromString,
+    reduceStep,
+    freeVarCount,
+    getReducibleApplications,
+} from "../lc-program"
 import { pause } from "../util"
+import AboutDialog from "./AboutDialog"
 
 const EGG_WIDTH = 94
 const EGG_HEIGHT = 57
 const GATOR_WIDTH = 296
 const GATOR_HEIGHT = 124
-const BASE_SCALE = 0.75
+const BASE_SCALE = 0.5
 
 // if you change this, make sure to update in style.css too
 const ANIMATION_TIME = 300
@@ -27,10 +33,9 @@ export default function GatorApp({ initialProgString }) {
         useState(initialProgString)
     const progStringChanged = currentInputString !== programString
     const [showDialog, setShowDialog] = useState(false)
-    const [reductionComplete, setReductionComplete] = useState(false)
+    const reductionComplete = getReducibleApplications(program).length === 0
 
     useEffect(() => {
-        setReductionComplete(false)
         clearTransitions()
         setUndoStack([])
         setProgram(makeProgramFromString(programString))
@@ -54,16 +59,10 @@ export default function GatorApp({ initialProgString }) {
     async function handleNextStep() {
         if (!reductionComplete) {
             setUndoStack([...undoStack, program])
-            const {
-                reducedProgram,
-                subbedInNodes,
-                lambdaFunc,
-                funcArg,
-                reductionComplete,
-            } = reduceStep(program)
+            const { reducedProgram, subbedInNodes, lambdaFunc, funcArg } =
+                reduceStep(program)
 
             await doAnimations(subbedInNodes, lambdaFunc, funcArg)
-            setReductionComplete(reductionComplete)
             setProgram(reducedProgram)
         }
     }
@@ -81,7 +80,10 @@ export default function GatorApp({ initialProgString }) {
 
     return (
         <div className="main-container">
-            <AboutDialog show={showDialog} />
+            <AboutDialog
+                show={showDialog}
+                closeFunc={() => setShowDialog(false)}
+            />
             <div className="input-row">
                 <button
                     className="load-button"
@@ -100,7 +102,6 @@ export default function GatorApp({ initialProgString }) {
                     disabled={undoStack.length === 0}
                     onClick={e => {
                         clearTransitions()
-                        setReductionComplete(false)
                         setProgram(undoStack.pop())
                         setUndoStack([...undoStack])
                     }}
@@ -285,19 +286,4 @@ function indexToDistantPosition(index, totalSpace) {
     const subRegionWidth = totalSpace / subRegions
 
     return subRegionIndex * subRegionWidth + subRegionWidth / 2
-}
-
-function AboutDialog({ show }) {
-    const display = show ? "flex" : "none"
-
-    return (
-        <div className="about-dialog" style={{ display }}>
-            {/* 
-            how to use
-            limitations
-            background + state of project
-            prioritized improvement list (better for README)
-        */}
-        </div>
-    )
 }

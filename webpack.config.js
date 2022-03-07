@@ -39,7 +39,7 @@ module.exports = (env, argv) => {
                 },
             ],
         },
-        plugins: [new HtmlWebpackPlugin()],
+        plugins: [new HtmlWebpackPlugin({ title: "Lambda Gator" })],
         devServer: {
             liveReload: true,
             watchFiles: { paths: [__dirname + "/src"] },
